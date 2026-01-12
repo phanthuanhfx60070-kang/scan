@@ -15,7 +15,9 @@ import {
   ListFilter,
   Bell,
   BellRing,
-  Volume2
+  Volume2,
+  RefreshCw,
+  ArrowRight
 } from 'lucide-react';
 
 const App = () => {
@@ -25,7 +27,14 @@ const App = () => {
   const [threshold, setThreshold] = useState(2.0); // 默认两倍放量报警
   const [status, setStatus] = useState('initializing');
   const [lastUpdate, setLastUpdate] = useState(Date.now());
-  const [mode, setMode] = useState('top20-30'); // 'custom' | 'top20-30'
+  
+  // 模式: 'ranking' (合约榜) | 'custom' (自选)
+  const [mode, setMode] = useState('ranking'); 
+  
+  // 排名范围配置
+  const [rankRange, setRankRange] = useState({ start: 20, end: 30 }); // 实际生效的范围
+  const [tempRange, setTempRange] = useState({ start: 20, end: 30 }); // 输入框的临时状态
+
   const [soundEnabled, setSoundEnabled] = useState(false); // 声音开关
   
   // --- 辅助状态 ---
@@ -144,6 +153,29 @@ const App = () => {
     }
   };
 
+  // --- 处理排名范围输入 ---
+  const handleRangeChange = (type, value) => {
+    setTempRange(prev => ({
+      ...prev,
+      [type]: parseInt(value) || ''
+    }));
+  };
+
+  const applyRange = () => {
+    let { start, end } = tempRange;
+    
+    // 基础验证
+    if (!start || start < 1) start = 1;
+    if (!end || end > 300) end = 100; // 防止请求过多
+    if (start > end) {
+      const t = start; start = end; end = t; // 自动交换
+    }
+    
+    setTempRange({ start, end });
+    setRankRange({ start, end });
+    setMode('ranking'); // 确保切换回 ranking 模式
+  };
+
   // --- 1. 获取目标合约列表及初始Ticker数据 ---
   const fetchTargetSymbols = async () => {
     try {
@@ -155,6 +187,7 @@ const App = () => {
         if (mode === 'custom') {
             targets = allTickers.filter(t => CUSTOM_LIST.includes(t.symbol));
         } else {
+            // 过滤掉非USDT合约、USDC合约和指数合约
             const candidates = allTickers.filter(t => {
                 const s = t.symbol;
                 return s.endsWith('USDT') && 
@@ -162,12 +195,17 @@ const App = () => {
                        !s.startsWith('USDC');
             });
 
+            // 按涨幅降序排序
             candidates.sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent));
 
-            // 截取第 20 到 30 名
-            targets = candidates.slice(19, 30);
+            // 根据 rankRange 截取
+            // 注意：slice 是 0-based，rank 是 1-based
+            const startIdx = Math.max(0, rankRange.start - 1);
+            const endIdx = rankRange.end;
             
-            console.log("Selected Futures Top 20-30:", targets.map(t => `${t.symbol} (${t.priceChangePercent}%)`));
+            targets = candidates.slice(startIdx, endIdx);
+            
+            console.log(`Selected Futures Top ${rankRange.start}-${rankRange.end}:`, targets.map(t => `${t.symbol} (${t.priceChangePercent}%)`));
         }
 
         return targets.map(t => ({
@@ -178,6 +216,7 @@ const App = () => {
 
     } catch (e) {
         console.error("Failed to fetch futures ranks", e);
+        // 如果失败，回退到自选列表
         return CUSTOM_LIST.map(s => ({ symbol: s, change: 0, price: 0 }));
     }
   };
@@ -241,12 +280,11 @@ const App = () => {
     return () => {
       isMounted = false;
       if (socketRef.current) socketRef.current.close();
-      // 修复：在关闭之前检查 AudioContext 状态，防止 InvalidStateError
       if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
         audioCtxRef.current.close().catch(() => {});
       }
     };
-  }, [mode]);
+  }, [mode, rankRange]); // 依赖项加入 rankRange
 
   // --- 3. WebSocket 连接 ---
   const startWebSocket = (currentContracts) => {
@@ -388,7 +426,7 @@ const App = () => {
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-normal">Futures</span>
               </h1>
               <p className="text-xs text-slate-400">
-                {mode === 'top20-30' ? '监控: 合约涨幅榜 20-30 名' : '监控: 自选合约列表'}
+                {mode === 'ranking' ? `监控: 合约榜 #${rankRange.start}-${rankRange.end}` : '监控: 自选合约列表'}
               </p>
             </div>
           </div>
@@ -430,28 +468,63 @@ const App = () => {
           <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 md:p-5 shadow-lg">
             
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 md:mb-6">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
-                <button 
-                  onClick={() => setMode('top20-30')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap ${
-                    mode === 'top20-30' 
-                      ? 'bg-indigo-600 text-white shadow-indigo-500/20 shadow-lg' 
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                  }`}
-                >
-                  <ListFilter size={14} className="md:w-4 md:h-4" />
-                  合约榜 Top 20-30
-                </button>
-                <button 
-                  onClick={() => setMode('custom')}
-                  className={`px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap ${
-                    mode === 'custom' 
-                      ? 'bg-indigo-600 text-white shadow-indigo-500/20 shadow-lg' 
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                  }`}
-                >
-                  自选列表
-                </button>
+              
+              {/* 模式选择与范围设置区 */}
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
+                  <button 
+                    onClick={() => setMode('ranking')}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap ${
+                      mode === 'ranking' 
+                        ? 'bg-indigo-600 text-white shadow-indigo-500/20 shadow-lg' 
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}
+                  >
+                    <ListFilter size={14} className="md:w-4 md:h-4" />
+                    合约榜
+                  </button>
+                  <button 
+                    onClick={() => setMode('custom')}
+                    className={`px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap ${
+                      mode === 'custom' 
+                        ? 'bg-indigo-600 text-white shadow-indigo-500/20 shadow-lg' 
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}
+                  >
+                    自选列表
+                  </button>
+                </div>
+
+                {/* 仅在 Ranking 模式下显示的范围输入框 */}
+                {mode === 'ranking' && (
+                  <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 animate-in fade-in slide-in-from-left-2 duration-300">
+                    <span className="text-[10px] md:text-xs text-slate-500 uppercase font-bold mr-1">Rank</span>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max="200"
+                      className="w-10 bg-transparent border-b border-slate-600 text-center text-sm focus:outline-none focus:border-indigo-500 font-mono text-slate-200"
+                      value={tempRange.start}
+                      onChange={(e) => handleRangeChange('start', e.target.value)}
+                    />
+                    <ArrowRight size={12} className="text-slate-600" />
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max="200"
+                      className="w-10 bg-transparent border-b border-slate-600 text-center text-sm focus:outline-none focus:border-indigo-500 font-mono text-slate-200"
+                      value={tempRange.end}
+                      onChange={(e) => handleRangeChange('end', e.target.value)}
+                    />
+                    <button 
+                      onClick={applyRange}
+                      className="ml-1 p-1 hover:bg-slate-800 rounded-md text-indigo-400 transition-colors"
+                      title="应用新范围"
+                    >
+                      <RefreshCw size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="relative w-full md:w-auto">
@@ -459,7 +532,7 @@ const App = () => {
                 <input 
                   type="text" 
                   placeholder="筛选代码..." 
-                  className="bg-slate-950 border border-slate-700 text-sm rounded-lg pl-9 pr-4 py-2 w-full md:w-64 focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder:text-slate-600"
+                  className="bg-slate-950 border border-slate-700 text-sm rounded-lg pl-9 pr-4 py-2 w-full md:w-48 focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder:text-slate-600"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -519,6 +592,8 @@ const App = () => {
                     const ratio = minuteAvgRef > 0 ? (contract.vol1m / minuteAvgRef) : 0;
                     const isHot = ratio > threshold;
                     const isSuperHot = ratio >= 15;
+                    // 在 rank 模式下显示绝对排名，custom 模式不显示
+                    const displayRank = mode === 'ranking' ? (rankRange.start + index) : '';
                     
                     return (
                       <tr 
@@ -528,7 +603,7 @@ const App = () => {
                         <td className="px-2 py-2 md:p-4">
                           <div className="flex items-center gap-1.5 md:gap-3">
                             <span className="text-[10px] md:text-xs font-mono text-slate-600 w-3 md:w-4 text-center">
-                              {mode === 'top20-30' ? 20 + index : ''}
+                              {displayRank}
                             </span>
                             <div className="flex flex-col">
                               {/* 手机端字体变小: text-xs md:text-base */}
