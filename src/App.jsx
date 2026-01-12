@@ -421,30 +421,30 @@ const App = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <main className="max-w-7xl mx-auto px-2 md:px-4 py-4 md:py-6 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
         
         {/* 左侧控制面板与列表 (8列) */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="lg:col-span-8 space-y-4 md:space-y-6">
           
           {/* 策略控制卡片 */}
-          <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 shadow-lg">
+          <div className="bg-slate-900 rounded-xl border border-slate-800 p-3 md:p-5 shadow-lg">
             
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 md:mb-6">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
                 <button 
                   onClick={() => setMode('top20-30')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap ${
                     mode === 'top20-30' 
                       ? 'bg-indigo-600 text-white shadow-indigo-500/20 shadow-lg' 
                       : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                   }`}
                 >
-                  <ListFilter size={16} />
+                  <ListFilter size={14} className="md:w-4 md:h-4" />
                   合约榜 Top 20-30
                 </button>
                 <button 
                   onClick={() => setMode('custom')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                  className={`px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap ${
                     mode === 'custom' 
                       ? 'bg-indigo-600 text-white shadow-indigo-500/20 shadow-lg' 
                       : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
@@ -466,9 +466,9 @@ const App = () => {
               </div>
             </div>
 
-            <div className="bg-slate-950/50 rounded-lg p-4 border border-slate-800/50">
+            <div className="bg-slate-950/50 rounded-lg p-3 md:p-4 border border-slate-800/50">
               <div className="flex flex-col gap-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs md:text-sm">
                   <div className="flex items-center gap-2">
                     <Settings size={14} className="text-indigo-400" />
                     <span className="text-slate-400">列表高亮阈值 (当前 ≥ 15x 将响铃)</span>
@@ -493,13 +493,15 @@ const App = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-950 text-slate-400 text-xs uppercase tracking-wider border-b border-slate-800">
-                    <th className="p-4 font-medium">合约</th>
-                    <th className="p-4 font-medium text-right">价格</th>
-                    <th className="p-4 font-medium text-right">24H%</th>
-                    <th className="p-4 font-medium text-right">1m量</th>
-                    <th className="p-4 font-medium text-right">基准</th>
-                    <th className="p-4 font-medium text-center">状态</th>
+                  <tr className="bg-slate-950 text-slate-400 text-[10px] md:text-xs uppercase tracking-wider border-b border-slate-800">
+                    {/* 手机端减小 Padding */}
+                    <th className="px-2 py-3 md:p-4 font-medium">合约</th>
+                    <th className="px-2 py-3 md:p-4 font-medium text-right">价格</th>
+                    <th className="px-2 py-3 md:p-4 font-medium text-right">24H%</th>
+                    <th className="px-2 py-3 md:p-4 font-medium text-right">1m量</th>
+                    {/* 手机端基准量可以隐藏或缩小 */}
+                    <th className="hidden md:table-cell px-2 py-3 md:p-4 font-medium text-right">基准</th>
+                    <th className="px-2 py-3 md:p-4 font-medium text-center">状态</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
@@ -523,42 +525,43 @@ const App = () => {
                         key={contract.id} 
                         className={`transition-colors hover:bg-slate-800/50 ${isSuperHot ? 'bg-red-900/20' : isHot ? 'bg-indigo-900/10' : ''}`}
                       >
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-mono text-slate-600 w-4 text-center">
+                        <td className="px-2 py-2 md:p-4">
+                          <div className="flex items-center gap-1.5 md:gap-3">
+                            <span className="text-[10px] md:text-xs font-mono text-slate-600 w-3 md:w-4 text-center">
                               {mode === 'top20-30' ? 20 + index : ''}
                             </span>
                             <div className="flex flex-col">
-                              <span className="font-bold text-slate-200">{contract.symbol}</span>
-                              <span className="text-[10px] text-indigo-400/70 uppercase">Perp</span>
+                              {/* 手机端字体变小: text-xs md:text-base */}
+                              <span className="font-bold text-slate-200 text-xs md:text-sm">{contract.symbol}</span>
+                              <span className="text-[9px] md:text-[10px] text-indigo-400/70 uppercase scale-90 origin-left md:scale-100">Perp</span>
                             </div>
                           </div>
                         </td>
-                        <td className="p-4 text-right font-mono text-slate-300">
+                        <td className="px-2 py-2 md:p-4 text-right font-mono text-slate-300 text-xs md:text-sm">
                           {formatNumber(contract.price)}
                         </td>
-                        <td className={`p-4 text-right font-medium ${contract.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        <td className={`px-2 py-2 md:p-4 text-right font-medium text-xs md:text-sm ${contract.change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                           {contract.change > 0 ? '+' : ''}
                           {isNaN(contract.change) ? '0.00' : contract.change.toFixed(2)}%
                         </td>
-                        <td className={`p-4 text-right font-mono transition-all duration-500 ${isSuperHot ? 'text-red-500 font-bold scale-110' : isHot ? 'text-indigo-400 font-bold' : 'text-slate-400'}`}>
+                        <td className={`px-2 py-2 md:p-4 text-right font-mono text-xs md:text-sm transition-all duration-500 ${isSuperHot ? 'text-red-500 font-bold scale-105 md:scale-110' : isHot ? 'text-indigo-400 font-bold' : 'text-slate-400'}`}>
                           {formatVolume(contract.vol1m)}
                         </td>
-                        <td className="p-4 text-right font-mono text-slate-600 text-xs">
+                        <td className="hidden md:table-cell px-2 py-2 md:p-4 text-right font-mono text-slate-600 text-xs">
                           ~{formatVolume(minuteAvgRef)}
                         </td>
-                        <td className="p-4 text-center">
+                        <td className="px-2 py-2 md:p-4 text-center">
                           {isHot ? (
-                            <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold border animate-pulse ${
+                            <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 md:px-2 md:py-1 rounded-full text-[10px] md:text-xs font-bold border animate-pulse ${
                               isSuperHot 
                                 ? 'bg-red-500/20 text-red-400 border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.3)]' 
                                 : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
                             }`}>
-                              {isSuperHot ? <Volume2 size={12} /> : <Zap size={12} fill="currentColor" />}
+                              {isSuperHot ? <Volume2 size={10} className="md:w-3 md:h-3" /> : <Zap size={10} className="md:w-3 md:h-3" fill="currentColor" />}
                               {ratio.toFixed(1)}x
                             </div>
                           ) : (
-                            <div className="w-12 h-1 bg-slate-800 rounded-full mx-auto overflow-hidden">
+                            <div className="w-8 md:w-12 h-1 bg-slate-800 rounded-full mx-auto overflow-hidden">
                               <div 
                                 className="h-full bg-slate-600 transition-all duration-500"
                                 style={{ width: `${Math.min(ratio * 20, 100)}%` }}
@@ -576,12 +579,13 @@ const App = () => {
         </div>
 
         {/* 右侧：异动日志 (4列) */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-lg h-[600px] flex flex-col">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900 rounded-t-xl">
+        {/* 手机端高度调整: h-[320px] -> lg:h-[600px] */}
+        <div className="lg:col-span-4 space-y-4 md:space-y-6">
+          <div className="bg-slate-900 rounded-xl border border-slate-800 shadow-lg h-[320px] lg:h-[600px] flex flex-col">
+            <div className="p-3 md:p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900 rounded-t-xl">
               <div className="flex items-center gap-2 text-amber-500">
-                <AlertTriangle size={18} />
-                <h2 className="font-semibold text-white">实时异动信号</h2>
+                <AlertTriangle size={16} className="md:w-[18px] md:h-[18px]" />
+                <h2 className="font-semibold text-white text-sm md:text-base">实时异动信号</h2>
               </div>
               <div className="flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
@@ -592,40 +596,40 @@ const App = () => {
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar" ref={scrollRef}>
+            <div className="flex-1 overflow-y-auto p-2 md:p-4 space-y-2 md:space-y-3 custom-scrollbar" ref={scrollRef}>
               {alerts.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-2">
-                  <Clock size={32} opacity={0.2} />
-                  <p className="text-sm">等待信号触发...</p>
-                  <p className="text-xs text-slate-700 text-center px-4">
+                  <Clock size={24} className="md:w-8 md:h-8" opacity={0.2} />
+                  <p className="text-xs md:text-sm">等待信号触发...</p>
+                  <p className="text-[10px] md:text-xs text-slate-700 text-center px-4">
                     当成交量超过阈值时显示<br/>
                     超过 <span className="text-red-400 font-bold">15x</span> 将触发声光震动
                   </p>
                 </div>
               ) : (
                 alerts.map((alert) => (
-                  <div key={alert.id} className={`p-3 rounded-lg border-l-4 shadow-sm animate-in slide-in-from-right fade-in duration-300 ${
+                  <div key={alert.id} className={`p-2 md:p-3 rounded-lg border-l-4 shadow-sm animate-in slide-in-from-right fade-in duration-300 ${
                     alert.isHighAlert 
                       ? 'bg-red-950/30 border-red-500' 
                       : 'bg-slate-950 border-amber-500'
                   }`}>
-                    <div className="flex justify-between items-start mb-1">
-                      <span className={`font-bold ${alert.isHighAlert ? 'text-red-400' : 'text-slate-200'}`}>
+                    <div className="flex justify-between items-start mb-0.5 md:mb-1">
+                      <span className={`font-bold text-xs md:text-sm ${alert.isHighAlert ? 'text-red-400' : 'text-slate-200'}`}>
                         {alert.symbol}
                       </span>
-                      <span className="text-xs text-slate-500 font-mono">
+                      <span className="text-[10px] md:text-xs text-slate-500 font-mono">
                         {new Date(alert.time).toLocaleTimeString()}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <div className={`text-xs font-bold flex items-center gap-1 px-2 py-1 rounded ${
+                    <div className="flex items-center justify-between mt-1 md:mt-2">
+                      <div className={`text-[10px] md:text-xs font-bold flex items-center gap-1 px-1.5 py-0.5 md:px-2 md:py-1 rounded ${
                         alert.isHighAlert ? 'bg-red-950/50 text-red-400' : 'bg-amber-950/30 text-amber-400'
                       }`}>
-                        {alert.isHighAlert ? <BellRing size={12} /> : <TrendingUp size={12} />}
+                        {alert.isHighAlert ? <BellRing size={10} className="md:w-3 md:h-3" /> : <TrendingUp size={10} className="md:w-3 md:h-3" />}
                         {alert.msg}
                       </div>
                       <div className="text-right">
-                        <div className="text-xs text-slate-400 font-mono">Price: {formatNumber(alert.price)}</div>
+                        <div className="text-[10px] md:text-xs text-slate-400 font-mono">Price: {formatNumber(alert.price)}</div>
                       </div>
                     </div>
                   </div>
@@ -633,13 +637,13 @@ const App = () => {
               )}
             </div>
             
-            <div className="p-3 border-t border-slate-800 bg-slate-950/30 rounded-b-xl flex justify-between items-center">
+            <div className="p-2 md:p-3 border-t border-slate-800 bg-slate-950/30 rounded-b-xl flex justify-between items-center">
               <span className="text-[10px] text-slate-600">
                 Binance Futures API
               </span>
               <button 
                 onClick={() => setAlerts([])}
-                className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                className="text-[10px] md:text-xs text-slate-500 hover:text-slate-300 transition-colors"
               >
                 清空日志
               </button>
