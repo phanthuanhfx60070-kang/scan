@@ -28,7 +28,7 @@ const App = () => {
   const [status, setStatus] = useState('initializing');
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   
-  // 模式: 'ranking' (合约榜) | 'custom' (自选)
+  // 模式: 'ranking' (涨幅榜) | 'losers' (跌幅榜) | 'custom' (自选)
   const [mode, setMode] = useState('ranking'); 
   
   // 排名范围配置
@@ -173,7 +173,10 @@ const App = () => {
     
     setTempRange({ start, end });
     setRankRange({ start, end });
-    setMode('ranking'); // 确保切换回 ranking 模式
+    // 如果当前是 custom，切回 ranking，否则保持当前榜单模式 (ranking 或 losers)
+    if (mode === 'custom') {
+      setMode('ranking');
+    }
   };
 
   // --- 1. 获取目标合约列表及初始Ticker数据 ---
@@ -195,8 +198,12 @@ const App = () => {
                        !s.startsWith('USDC');
             });
 
-            // 按涨幅降序排序
-            candidates.sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent));
+            // 排序逻辑：ranking=涨幅榜(降序), losers=跌幅榜(升序)
+            if (mode === 'ranking') {
+              candidates.sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent));
+            } else if (mode === 'losers') {
+              candidates.sort((a, b) => parseFloat(a.priceChangePercent) - parseFloat(b.priceChangePercent));
+            }
 
             // 根据 rankRange 截取
             // 注意：slice 是 0-based，rank 是 1-based
@@ -205,7 +212,7 @@ const App = () => {
             
             targets = candidates.slice(startIdx, endIdx);
             
-            console.log(`Selected Futures Top ${rankRange.start}-${rankRange.end}:`, targets.map(t => `${t.symbol} (${t.priceChangePercent}%)`));
+            console.log(`Selected Futures (${mode}) Top ${rankRange.start}-${rankRange.end}:`, targets.map(t => `${t.symbol} (${t.priceChangePercent}%)`));
         }
 
         return targets.map(t => ({
@@ -411,6 +418,13 @@ const App = () => {
     c.name.includes(searchTerm)
   );
 
+  // 获取当前模式的显示名称
+  const getModeTitle = () => {
+    if (mode === 'ranking') return `监控: 合约榜 (涨幅) #${rankRange.start}-${rankRange.end}`;
+    if (mode === 'losers') return `监控: 跌幅榜 #${rankRange.start}-${rankRange.end}`;
+    return '监控: 自选合约列表';
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500 selection:text-white pb-10">
       {/* 顶部导航 */}
@@ -426,7 +440,7 @@ const App = () => {
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-normal">Futures</span>
               </h1>
               <p className="text-xs text-slate-400">
-                {mode === 'ranking' ? `监控: 合约榜 #${rankRange.start}-${rankRange.end}` : '监控: 自选合约列表'}
+                {getModeTitle()}
               </p>
             </div>
           </div>
@@ -484,6 +498,17 @@ const App = () => {
                     合约榜
                   </button>
                   <button 
+                    onClick={() => setMode('losers')}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap ${
+                      mode === 'losers' 
+                        ? 'bg-rose-600 text-white shadow-rose-500/20 shadow-lg' 
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}
+                  >
+                    <TrendingDown size={14} className="md:w-4 md:h-4" />
+                    跌幅榜
+                  </button>
+                  <button 
                     onClick={() => setMode('custom')}
                     className={`px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-all whitespace-nowrap ${
                       mode === 'custom' 
@@ -495,8 +520,8 @@ const App = () => {
                   </button>
                 </div>
 
-                {/* 仅在 Ranking 模式下显示的范围输入框 */}
-                {mode === 'ranking' && (
+                {/* 在 Ranking 或 Losers 模式下显示的范围输入框 */}
+                {(mode === 'ranking' || mode === 'losers') && (
                   <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 animate-in fade-in slide-in-from-left-2 duration-300">
                     <span className="text-[10px] md:text-xs text-slate-500 uppercase font-bold mr-1">Rank</span>
                     <input 
@@ -592,8 +617,8 @@ const App = () => {
                     const ratio = minuteAvgRef > 0 ? (contract.vol1m / minuteAvgRef) : 0;
                     const isHot = ratio > threshold;
                     const isSuperHot = ratio >= 15;
-                    // 在 rank 模式下显示绝对排名，custom 模式不显示
-                    const displayRank = mode === 'ranking' ? (rankRange.start + index) : '';
+                    // 在 rank/losers 模式下显示绝对排名，custom 模式不显示
+                    const displayRank = (mode === 'ranking' || mode === 'losers') ? (rankRange.start + index) : '';
                     
                     return (
                       <tr 
