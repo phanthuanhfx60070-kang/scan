@@ -182,6 +182,7 @@ const App = () => {
   // --- 1. 获取目标合约列表及初始Ticker数据 ---
   const fetchTargetSymbols = async () => {
     try {
+        // 关键：使用 fapi.binance.com 确保只获取合约数据 (Futures)，而非现货 (Spot)
         const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
         const allTickers = await res.json();
 
@@ -190,9 +191,12 @@ const App = () => {
         if (mode === 'custom') {
             targets = allTickers.filter(t => CUSTOM_LIST.includes(t.symbol));
         } else {
-            // 过滤掉非USDT合约、USDC合约和指数合约
+            // 严格筛选：仅保留 USDT 本位永续合约
             const candidates = allTickers.filter(t => {
                 const s = t.symbol;
+                // 1. 必须以 USDT 结尾
+                // 2. 不含下划线 _ (排除交割合约，如 BTCUSDT_210924)
+                // 3. 排除稳定币对 (如 USDCUSDT)
                 return s.endsWith('USDT') && 
                        !s.includes('_') && 
                        !s.startsWith('USDC');
@@ -202,6 +206,7 @@ const App = () => {
             if (mode === 'ranking') {
               candidates.sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent));
             } else if (mode === 'losers') {
+              // 跌幅榜：从小到大排序 (-20% 在 -5% 前面)
               candidates.sort((a, b) => parseFloat(a.priceChangePercent) - parseFloat(b.priceChangePercent));
             }
 
@@ -257,7 +262,7 @@ const App = () => {
               symbol: target.symbol,
               name: target.symbol.replace('USDT', ''),
               price: target.price || klinePrice, 
-              change: target.change,             
+              change: target.change,              
               vol1m: 0,
               vol5dAvg: avgVol || 1,
               lastUpdated: Date.now()
@@ -421,7 +426,7 @@ const App = () => {
   // 获取当前模式的显示名称
   const getModeTitle = () => {
     if (mode === 'ranking') return `监控: 合约榜 (涨幅) #${rankRange.start}-${rankRange.end}`;
-    if (mode === 'losers') return `监控: 跌幅榜 #${rankRange.start}-${rankRange.end}`;
+    if (mode === 'losers') return `监控: 跌幅榜 (合约) #${rankRange.start}-${rankRange.end}`;
     return '监控: 自选合约列表';
   };
 
